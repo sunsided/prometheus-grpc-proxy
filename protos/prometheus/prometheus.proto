@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package prometheus;
+
+service Metrics {
+  rpc Metrics(MetricsRequest) returns (MetricsResponse) {}
+}
+
+message MetricsRequest {
+}
+
+message MetricsResponse {
+  /// The prometheus-encoded metrics.
+  string text = 1;
+}

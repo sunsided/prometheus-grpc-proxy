@@ -1,0 +1,17 @@
+[package]
+name = "prometheus-grpc-proxy"
+description = "A Prometheus HTTP server that wraps a gRPC protocol. Used to provide Prometheus scaping support to gRPC-only services."
+version = "0.1.0"
+edition = "2021"
+authors = ["Markus Mayer <widemeadows@gmail.com>"]
+
+[dependencies]
+actix-web = { version = "4.2.1", default-features = false, features = ["macros", "actix-macros", "compress-zstd", "compress-brotli", "compress-gzip", "actix-web-codegen"] }
+anyhow = "1.0.66"
+clap = { version = "4.0.27", features = ["env"] }
+dotenv = "0.15.0"
+prost = "0.11.2"
+tonic = { version = "0.8.2", features = ["gzip", "flate2", "tokio", "h2"] }
+
+[build-dependencies]
+tonic-build = "0.8.2"
