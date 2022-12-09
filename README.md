@@ -21,6 +21,9 @@ message MetricsResponse {
 The main purpose of this project is to allow a regular Tonic server to provide Prometheus metrics without
 the hassle of providing an additional HTTP server endpoint.
 
+The service is available as Docker image from [`sunside/prometheus-grpc-proxy`](https://hub.docker.com/repository/docker/sunside/prometheus-grpc-proxy).
+See [`docker-compose.yml`](docker-compose.yml) for a usage example.
+
 ## Command-Line Arguments
 
 * `--bind <BIND_ENDPOINT>` (or `HTTP_SERVER_BIND_ENDPOINT` environment variable)
