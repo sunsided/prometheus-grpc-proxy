@@ -31,6 +31,17 @@ the hassle of providing an additional HTTP server endpoint.
 * `--log <STYLE>` (or `HTTP_SERVER_LOG_STYLE` environment variable)
   Either `simple` or `json`, selects the logging style; defaults to `simple`.
 
+## Testing the service
+
+A [`Dockerfile`](Dockerfile) and [`docker-compose.yml`] definition are provided to test the service.
+After executing
+
+```bash
+$ docker compose up
+```
+
+you should be able to visit the Prometheus endpoint in your browser at [`http://localhost:8080/metrics`](http://localhost:8080/metrics).
+
 ## Extension points
 
 [OpenMetrics] gRPC support may be added at a later point.

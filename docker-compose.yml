@@ -1,0 +1,31 @@
+---
+version: '3.4'
+
+services:
+  test:
+    image: prometheus-grpc-proxy-test-server:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: test-server
+    environment:
+      GRPC_SERVER_BIND_ENDPOINT: "0.0.0.0:50051"
+    ports:
+      - "50051:50051"
+
+  proxy:
+    image: prometheus-grpc-proxy:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: prometheus-grpc-proxy
+    environment:
+      HTTP_SERVER_BIND_ENDPOINT: "0.0.0.0:80"
+      GRPC_CLIENT_ENDPOINT: "http://test:50051"
+    ports:
+      - "8080:80"
+    expose:
+      - "8080"
+    depends_on:
+      - test
+    restart: on-failure
