@@ -12,6 +12,17 @@ COPY Cargo.lock .
 
 RUN cargo install --bins --examples --path .
 
+# The test server image.
+FROM debian:bullseye-slim as test-server
+
+COPY --from=builder /usr/local/cargo/bin/server /usr/local/bin/test-server
+
+ENV GRPC_SERVER_BIND_ENDPOINT=0.0.0.0:50051
+EXPOSE 50051
+
+WORKDIR /app
+ENTRYPOINT ["test-server"]
+
 # The proxy server image.
 FROM debian:bullseye-slim as prometheus-grpc-proxy
 
@@ -25,13 +36,3 @@ EXPOSE 80
 WORKDIR /app
 ENTRYPOINT ["prometheus-grpc-proxy"]
 
-# The test server image.
-FROM debian:bullseye-slim as test-server
-
-COPY --from=builder /usr/local/cargo/bin/server /usr/local/bin/test-server
-
-ENV GRPC_SERVER_BIND_ENDPOINT=0.0.0.0:50051
-EXPOSE 50051
-
-WORKDIR /app
-ENTRYPOINT ["test-server"]

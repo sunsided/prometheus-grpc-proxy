@@ -45,6 +45,12 @@ $ docker compose up
 
 you should be able to visit the Prometheus endpoint in your browser at [`http://localhost:8080/metrics`](http://localhost:8080/metrics).
 
+To build the Proxy image yourself, run
+
+```bash
+$ docker build --tag sunside/prometheus-grpc-proxy:latest --target prometheus-grpc-proxy .
+```
+
 ## Extension points
 
 [OpenMetrics] gRPC support may be added at a later point.
