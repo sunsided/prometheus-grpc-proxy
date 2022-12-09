@@ -112,7 +112,7 @@ pub enum LoggingStyle {
 ///
 /// This method uses the default environment filter to configure logging.
 /// Please use the `RUST_LOG` environment variable to tune.
-pub fn initialize_logging(style: LoggingStyle) {
+fn initialize_logging(style: LoggingStyle) {
     let filter = EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
         .from_env_lossy();
