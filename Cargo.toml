@@ -1,9 +1,13 @@
 [package]
 name = "prometheus-grpc-proxy"
-description = "A Prometheus HTTP server that wraps a gRPC protocol. Used to provide Prometheus scaping support to gRPC-only services."
+description = "A Prometheus HTTP server used to provide Prometheus scraping support to gRPC-only services."
 version = "0.1.0"
 edition = "2021"
 authors = ["Markus Mayer <widemeadows@gmail.com>"]
+license = "MIT"
+license-file = "LICENSE.md"
+readme = "README.md"
+repository = "https://github.com/sunsided/prometheus-grpc-proxy"
 
 [dependencies]
 actix-web = { version = "4.2.1", default-features = false, features = ["macros", "actix-macros", "compress-zstd", "compress-brotli", "compress-gzip", "actix-web-codegen"] }
