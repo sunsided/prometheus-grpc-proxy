@@ -21,6 +21,16 @@ message MetricsResponse {
 The main purpose of this project is to allow a regular Tonic server to provide Prometheus metrics without
 the hassle of providing an additional HTTP server endpoint.
 
+## Command-Line Arguments
+
+* `--bind <BIND_ENDPOINT>` (or `HTTP_SERVER_BIND_ENDPOINT` environment variable)
+  Specifies the endpoint to bind the HTTP server to. Can be specified multiple times
+  and defaults to `127.0.0.1:8080`.
+* `--endpoint <GRPC_ENDPOINT>` (or `GRPC_CLIENT_ENDPOINT` environment variable)
+  Specifies the gRPC endpoint to connect to. Must include the protocol; defaults to `http://127.0.0.1:50051`.
+* `--log <STYLE>` (or `HTTP_SERVER_LOG_STYLE` environment variable)
+  Either `simple` or `json`, selects the logging style; defaults to `simple`.
+
 ## Extension points
 
 [OpenMetrics] gRPC support may be added at a later point.

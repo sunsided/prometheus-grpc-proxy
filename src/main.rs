@@ -3,11 +3,12 @@ use crate::pb::MetricsRequest;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use clap::parser::ValuesRef;
 use clap::ArgAction;
-use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use tonic::codec::CompressionEncoding;
 use tonic::transport::{Channel, Uri};
+use tracing::{debug, info};
+use tracing_subscriber::EnvFilter;
 
 mod pb {
     tonic::include_proto!("prometheus");
@@ -29,6 +30,8 @@ async fn index() -> impl Responder {
 /// This is the default Prometheus endpoint.
 #[get("/metrics")]
 async fn metrics(data: web::Data<AppState>) -> impl Responder {
+    debug!("Fetching metrics from gRPC service ...");
+
     let mut client = MetricsClient::new(data.channel.clone())
         .send_compressed(CompressionEncoding::Gzip)
         .accept_compressed(CompressionEncoding::Gzip);
@@ -44,9 +47,11 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
     let matches = build_command().get_matches();
+    let logging_style: &LoggingStyle = matches.get_one("logging_style").unwrap();
     let bind_endpoints: ValuesRef<SocketAddr> = matches.get_many("bind_endpoint").unwrap();
     let grpc_endpoint: &Uri = matches.get_one("grpc_endpoint").unwrap();
 
+    initialize_logging(*logging_style);
     let channel = build_grpc_channel(grpc_endpoint).await?;
     run_server(channel, bind_endpoints).await?;
 
@@ -84,12 +89,45 @@ async fn run_server(
     });
 
     for endpoint in bind_endpoints.into_iter() {
+        info!("Binding to {endpoint}", endpoint = endpoint.to_string());
         server = server.bind(endpoint)?
     }
 
+    info!("Starting server ...");
     server.run().await?;
 
+    info!("Server stopped");
     Ok(())
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum LoggingStyle {
+    /// Uses compact logging.
+    Compact,
+    /// Uses JSON formatted logging
+    Json,
+}
+
+/// Initializes the tracing and logging system.
+///
+/// This method uses the default environment filter to configure logging.
+/// Please use the `RUST_LOG` environment variable to tune.
+pub fn initialize_logging(style: LoggingStyle) {
+    let filter = EnvFilter::builder()
+        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
+        .from_env_lossy();
+
+    let formatter = tracing_subscriber::fmt()
+        .with_file(false)
+        .with_line_number(false)
+        .with_thread_ids(true)
+        .with_target(true)
+        .with_env_filter(filter);
+
+    match style {
+        LoggingStyle::Compact => formatter.init(),
+        LoggingStyle::Json => formatter.json().init(),
+    }
 }
 
 pub fn build_command() -> clap::Command {
@@ -116,13 +154,25 @@ pub fn build_command() -> clap::Command {
             Arg::new("grpc_endpoint")
                 .short('e')
                 .long("endpoint")
-                .env("GRPC_SERVER_ENDPOINT")
+                .env("GRPC_CLIENT_ENDPOINT")
                 .value_name("ENDPOINT")
-                .default_value("http://localhost:50051")
+                .default_value("http://127.0.0.1:50051")
                 .long_help("The gRPC endpoint to connect to")
                 .num_args(1)
                 .value_parser(grpc_endpoint)
                 .help_heading("gRPC Endpoint"),
+        )
+        .arg(
+            Arg::new("logging_style")
+                .short('l')
+                .long("log")
+                .env("HTTP_SERVER_LOG_STYLE")
+                .value_name("STYLE")
+                .default_value("simple")
+                .help("The logging style to use (simple, json)")
+                .num_args(1)
+                .value_parser(logging_style)
+                .help_heading("Logging"),
         );
 
     fn bind_endpoint(s: &str) -> Result<SocketAddr, String> {
@@ -136,6 +186,15 @@ pub fn build_command() -> clap::Command {
         match Uri::from_str(s) {
             Ok(uri) => Ok(uri),
             Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn logging_style(s: &str) -> Result<LoggingStyle, String> {
+        match s {
+            "simple" => Ok(LoggingStyle::Compact),
+            "compat" => Ok(LoggingStyle::Compact),
+            "json" => Ok(LoggingStyle::Json),
+            _ => Err(String::from("Either simple or json must be specified")),
         }
     }
 }
