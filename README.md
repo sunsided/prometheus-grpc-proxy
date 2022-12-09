@@ -36,7 +36,7 @@ See [`docker-compose.yml`](docker-compose.yml) for a usage example.
 
 ## Testing the service
 
-A [`Dockerfile`](Dockerfile) and [`docker-compose.yml`] definition are provided to test the service.
+A [`Dockerfile`](Dockerfile) and [`docker-compose.yml`](docker-compose.yml) definition are provided to test the service.
 After executing
 
 ```bash
