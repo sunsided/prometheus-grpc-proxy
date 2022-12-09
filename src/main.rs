@@ -1,7 +1,10 @@
 use crate::pb::metrics_client::MetricsClient;
 use crate::pb::MetricsRequest;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use clap::parser::ValuesRef;
+use clap::ArgAction;
 use std::error::Error;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use tonic::codec::CompressionEncoding;
 use tonic::transport::{Channel, Uri};
@@ -41,10 +44,11 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
     let matches = build_command().get_matches();
+    let bind_endpoints: ValuesRef<SocketAddr> = matches.get_many("bind_endpoint").unwrap();
     let grpc_endpoint: &Uri = matches.get_one("grpc_endpoint").unwrap();
 
     let channel = build_grpc_channel(grpc_endpoint).await?;
-    run_server(channel).await?;
+    run_server(channel, bind_endpoints).await?;
 
     Ok(())
 }
@@ -65,19 +69,25 @@ async fn build_grpc_channel(grpc_endpoint: &Uri) -> anyhow::Result<Channel> {
     Ok(channel)
 }
 
-async fn run_server(channel: Channel) -> anyhow::Result<()> {
+async fn run_server(
+    channel: Channel,
+    bind_endpoints: ValuesRef<'_, SocketAddr>,
+) -> anyhow::Result<()> {
     // State created here to avoid multiple construction.
     let state = web::Data::new(AppState { channel });
 
-    HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         App::new()
             .app_data(state.clone())
             .service(index)
             .service(metrics)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await?;
+    });
+
+    for endpoint in bind_endpoints.into_iter() {
+        server = server.bind(endpoint)?
+    }
+
+    server.run().await?;
 
     Ok(())
 }
@@ -90,19 +100,39 @@ pub fn build_command() -> clap::Command {
         .author("Markus Mayer <widemeadows@gmail.com>")
         .about("Read Prometheus Metrics")
         .arg(
+            Arg::new("bind_endpoint")
+                .short('b')
+                .long("bind")
+                .env("HTTP_SERVER_BIND_ENDPOINT")
+                .value_name("BIND_ENDPOINT")
+                .default_value("127.0.0.1:8080")
+                .long_help("The endpoint to bind to")
+                .num_args(1)
+                .action(ArgAction::Append)
+                .value_parser(bind_endpoint)
+                .help_heading("HTTP Binding"),
+        )
+        .arg(
             Arg::new("grpc_endpoint")
                 .short('e')
                 .long("endpoint")
                 .env("GRPC_SERVER_ENDPOINT")
                 .value_name("ENDPOINT")
                 .default_value("http://localhost:50051")
-                .long_help("The gRPC endpoint scheme to connect to")
+                .long_help("The gRPC endpoint to connect to")
                 .num_args(1)
-                .value_parser(endpoint)
+                .value_parser(grpc_endpoint)
                 .help_heading("gRPC Endpoint"),
         );
 
-    fn endpoint(s: &str) -> Result<Uri, String> {
+    fn bind_endpoint(s: &str) -> Result<SocketAddr, String> {
+        match SocketAddr::from_str(s) {
+            Ok(addr) => Ok(addr),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn grpc_endpoint(s: &str) -> Result<Uri, String> {
         match Uri::from_str(s) {
             Ok(uri) => Ok(uri),
             Err(e) => Err(e.to_string()),
